@@ -1,10 +1,10 @@
-= This is where it all comes together...
+# This is where it all comes together...
 Using this custom DSL you are able to specify your Application's functionalaty. 
 Since the generated code uses the RobotLegs framework, I've designed the DSL in terms
 of the RobotLegs design principals. It is very loose coupled, which was one of my primary 
 goals, my other primary goal was to never have to write another line of Actionscript. 
 
-= The Pitch
+# The Pitch
 Writing a sophisticated Flex application is painful, especially when you're dealing with
 the Views and the Controller. You basically had to do 10 times more work in order to produce
 clean View code. And time after time I was disapointed with the code I was writing; it's like MXML 
@@ -16,7 +16,7 @@ in order for it to work. Pointless isn't it? Until now there was no good solutio
 except code snippets. If you can say what you mean in 50 lines of code, why does it take 1000 lines
 of code to actually to do what you said? It's all cruft. 
 
-= The Solution
+# The Solution
 Say what you mean, then let the program do all the dirty work. Kind of like a rails generator with 
 a brain. The code below is not just a specification, it is actually executable code. Using MetaModels to 
 describe the building blocks of your system you are able to generate code that reacts to the 
@@ -24,16 +24,16 @@ other code in your environment. For example, notice that the Form section says n
 attributes of the model it is responsible for; yet it still generates the appropriate View. 
 
 
-= The Spec
+# The Spec
 The root element is the Application, or 'app'. The App can contain many Actors. Actors 
 react to signals, and they can also broadcast signals. Signals trigger commands. And Commands
 do the actual work. This allows for a very loose coupled design, keeping all your real business 
 logic away from the plumping. Almost too simple...
 
-= Why?
+# Why?
 Because this beats writing pointless code all day long. I despise such languages, but for 
 once I didn't have any other option; either code in Actonscript, or abandon the platform.
 When will companies learn? But it was a nice challenge, and it made me thankful that I'm 
 a bartender; and not a Java programmer. 
 
-Shaun Hannah
+### => Shaun Hannah
