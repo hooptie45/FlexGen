@@ -1,116 +1,94 @@
-module FlexGen
+require 'flexgen/model_builder'
+require 'metamodel/as'
 
-# An Environment is used to hold model elements.
-#
-class Environment
+include ASMetaModel
 
-	def initialize
-		@elements = {}
-		@subClasses = {}
-		@subClassesUpdated = {}
-	end
-	
-	# Add a model element. Returns the environment so <code><<</code> can be chained.
-	# 
-	def <<(el)
-		clazz = el.class
-		@elements[clazz] ||= []
-		@elements[clazz] << el
-		updateSubClasses(clazz)
-		self
-	end
+## This is where it all comes together...
+# Using this custom DSL you are able to specify your Application's functionality. 
+# Since the generated code uses the RobotLegs framework, I've designed the DSL in terms
+# of the RobotLegs design principals. It is very loose coupled, which was one of my primary 
+# goals, my other primary goal was to never have to write another line of Actionscript. 
 
-	# Removes model element from environment.
-	def delete(el)
-		return unless @elements[el.class]
-		@elements[el.class].delete(el)
-	end
-		
-	# Iterates each element
-	#
-	def each(&b)
-		@elements.values.flatten.each(&b)
-	end
-	
-	# Return the elements of the environment as an array
-	#
-	def elements
-		@elements.values.flatten
-	end
-	
-	# This method can be used to instantiate a class and automatically put it into
-	# the environment. The new instance is returned.
-	#
-	def new(clazz, *args)
-		obj = clazz.new(*args)
-		self << obj
-		obj
-	end
-	
-	# Finds and returns model elements in the environment.
-	# 
-	# The search description argument must be a hash specifying attribute/value pairs.
-	# Only model elements are returned which respond to the specified attribute methods
-	# and return the specified values as result of these attribute methods.
-	# 
-	# As a special hash key :class can be used to look for model elements of a specific
-	# class. In this case an array of possible classes can optionally be given.
-	# 
-	def find(desc)
-		result = []
-		classes = desc[:class] if desc[:class] and desc[:class].is_a?(Array)
-		classes = [ desc[:class] ] if !classes and desc[:class]
-		if classes
-			hashKeys = classesWithSubClasses(classes)
-		else
-			hashKeys = @elements.keys
-		end
-		hashKeys.each do |clazz|
-			next unless @elements[clazz]
-			@elements[clazz].each do |e|
-				failed = false
-				desc.each_pair { |k,v|
-					failed = true if k != :class and ( !e.respond_to?(k) or e.send(k) != v )
-				}
-				result << e unless failed
-			end
-		end
-		result
-	end
-	
-	private
-	
-	def updateSubClasses(clazz)
-		return if @subClassesUpdated[clazz]
-		if clazz.respond_to?( :ecore )
-			superClasses = clazz.ecore.eAllSuperTypes.collect{|c| c.instanceClass}
-		else
-			superClasses = superclasses(clazz)
-		end
-		superClasses.each do |c|
-			next if c == Object
-			@subClasses[c] ||= []
-			@subClasses[c] << clazz
-		end
-		@subClassesUpdated[clazz] = true
-	end	
-	
-	def classesWithSubClasses(classes)
-		result = classes
-		classes.each do |c|
-			result += @subClasses[c] if @subClasses[c]
-		end
-		result.uniq
-	end
-	
-	def superclasses(clazz)
-		if clazz == Object
-			[]
-		else
-			superclasses(clazz.superclass) << clazz.superclass
-		end
-	end
-	
+## The Pitch
+# Writing a sophisticated Flex application is painful, especially when you're dealing with
+# the Views and the Controller. You basically had to do 10 times more work in order to produce
+# clean View code. And time after time I was disappointed with the code I was writing; it's like MXML 
+# almost begs you to stuff your application logic into the Views. This is a result of poor design on
+# Adobe's part. Object's defined in MXML are private, therefore you cannot access them from anywhere
+# but the view code itself, which leads Actionscript polluting the view. The solution is a code-behind 
+# for your views. But you have to manually define all of the Objects you plan on using in your view 
+# in order for it to work. Pointless isn't it? Until now there was no good solution to this problem; 
+# except code snippets. If you can say what you mean in 50 lines of code, why does it take 1000 lines
+# of code to actually to do what you said? It's all cruft. 
+
+## The Solution
+# Say what you mean, then let the program do all the dirty work. Kind of like a rails generator with 
+# a brain. The code below is not just a specification, it is actually executable code. Using MetaModels to 
+# describe the building blocks of your system you are able to generate code that reacts to the 
+# other code in your environment. For example, notice that the Form section says nothing about the 
+# attributes of the model it is responsible for; yet it still generates the appropriate View. 
+
+## The Spec
+# The root element is the Application, or 'app'. The App can contain many Actors. Actors 
+# react to signals, and they can also broadcast signals. Signals trigger commands. And Commands
+# do the actual work. This allows for a very loose coupled design, keeping all your real business 
+# logic away from the plumping. Almost too simple...
+
+## Why?
+# Because this beats writing pointless code all day long. I despise such languages, but for 
+# once I didn't have any other option; either code in Actonscript, or abandon the platform.
+# When will companies learn? But it was a nice challenge, and it made me thankful that I'm 
+# a bartender; and not a Java programmer. 
+
+### => Shaun Hannah
+
+def auto_build
+  FlexGen::ModelBuilder.build(ASMetaModel) do
+    
+    
+    app "App", :base => "com.test" do
+      # Models
+      actor "Customer" do
+        attribute "first_name", :view_type => "String"
+        attribute "last_name", :view_type => "String"
+
+        sig "New"
+        sig "Destroy"
+      end      
+      actor "Order" do
+        attribute "price", :view_type => "String"
+        attribute "quantity", :view_type => "String"        
+        sig "New"
+        sig "Destroy"
+      end
+      
+      # App Signals
+      sig "Init" do
+        val "testing"
+      end
+
+      # Commands
+      cmd "CreateCustomer",   :triggers => ["Customer.New", "Order.New"]
+      cmd "LoadCustomers",    :triggers => ["App.Init"]
+      cmd "DestroyCustomer",  :triggers => ["Customer.Destroy"]
+      cmd "NewOrder",         :triggers => ["Order.New"]
+      
+      # Views
+      view "CustomerView" do
+        form :watchers => [ "Customer.New", "Customer.Destroy"] do
+          button "CreateCustomer", :triggers => ["Customer.New"]
+          button "DestroyCustomer", :triggers => ["Customer.Destroy"]
+        end
+      end
+      
+      view "OrderView" do
+        form :watchers => ["Order.New", "Order.Destroy"] do
+          button "CreateOrder", :triggers => ["Order.New"]
+          button "DestroyCustomer", :triggers => ["Order.Destroy"]
+        end
+      end
+    end
+  end
 end
 
-end
+MODEL = auto_build
